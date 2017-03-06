@@ -12,6 +12,8 @@ import sys
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 #
+import matplotlib.image as mpimg
+#
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Flatten, Dropout, Lambda
 from keras.layers.convolutional import Convolution2D
@@ -24,8 +26,8 @@ tf.python.control_flow_ops = tf
 DATADIR = "./data/data/"
 DRIVING_LOG_FILE = DATADIR + "/driving_log.csv"
 IMGDIR = DATADIR + "/IMG/"
-LEFT_STEERING_CORRECTION = 0.3
-RIGHT_STEERING_CORRECTION = -0.3
+LEFT_STEERING_CORRECTION = 0.27
+RIGHT_STEERING_CORRECTION = -0.27
 #
 
 def buildModel(feature_extract = False, ipshape = (160, 320, 3)):
@@ -108,7 +110,8 @@ def dataGenerator(samples, batchsz = 32):
             batchdata = samples[i: i + batchsz]
             for b in batchdata:
                 ifile = IMGDIR + b[0]
-                img = cv2.imread(ifile)
+                #img = cv2.imread(ifile)
+                img = mpimg.imread(ifile)
                 steering = float(b[1])
                 #If this was an image intended to be
                 #flipped, then do flip. The steering
@@ -123,16 +126,16 @@ def dataGenerator(samples, batchsz = 32):
             yield shuffle(X, y)
 
 
-def trainModel(model, samples, valsplit = 0.2, modeloutfile = "./model/model.h5"):
+def trainModel(model, samples, valsplit = 0.1, modeloutfile = "./model/model.h5"):
     train_samples, val_samples = train_test_split(samples, test_size = valsplit)
-    trainDataGen = dataGenerator(train_samples, batchsz = 128)
-    valDataGen = dataGenerator(val_samples, batchsz = 128)
+    trainDataGen = dataGenerator(train_samples, batchsz = 64)
+    valDataGen = dataGenerator(val_samples, batchsz = 64)
     model.compile(loss = "mse", optimizer="adam", metrics=["mean_squared_error"])
     history = model.fit_generator(trainDataGen,\
                                   samples_per_epoch = len(train_samples),\
                                   validation_data = valDataGen,\
                                   nb_val_samples = len(val_samples),\
-                                  nb_epoch = 20)
+                                  nb_epoch = 25)
     model.save(modeloutfile)
     print("Model saved to \"", modeloutfile, "\"")
     return history
