@@ -41,7 +41,8 @@ def buildModel(feature_extract = False, ipshape = (160, 320, 3)):
 
     The model architecture was originally proposed by Bojarski et.al,
     End to Eng Learning for Self-Driving Cars, of NVIDIA Inc.
-    Reference: https://arxiv.org/abs/1604.07316
+    Reference: https://arxiv.org/abs/1604.07316. I've adapted it
+    for this project.
     """
     model = Sequential()
     ### Data Pre-processing
