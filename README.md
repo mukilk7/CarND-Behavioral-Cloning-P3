@@ -116,3 +116,5 @@ The video will run at 48 FPS. The default FPS is 60.
 
 1. It's been noted the simulator might perform differently based on the hardware. So if your model drives succesfully on your machine it might not on another machine (your reviewer). Saving a video is a solid backup in case this happens.
 2. You could slightly alter the code in `drive.py` and/or `video.py` to create a video of what your model sees after the image is processed (may be helpful for debugging).
+
+<div style="width: 100%; height: 0px; position: relative; padding-bottom: 50.000%;"><iframe src="//streamable.com/e/kqcob?loop=0" frameborder="0" allowfullscreen webkitallowfullscreen mozallowfullscreen scrolling="no" style="width: 100%; height: 100%; position: absolute;"></iframe><script async  src="//v.embedcdn.com/v1/embed.js"></script></div>
