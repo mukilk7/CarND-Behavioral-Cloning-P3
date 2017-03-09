@@ -31,15 +31,24 @@ RIGHT_STEERING_CORRECTION = -0.27
 #
 
 def buildModel(feature_extract = False, ipshape = (160, 320, 3)):
-    """ Builds the NVIDIA model
+    """ Builds a deep neural network model with 2 pre-processing
+    layers (cropping and normalization), 5 convolutional layers
+    non-linearized via the RELU function and 3 fully connected
+    layers, again non-linearized via the RELU function. Dropout
+    layers of increasing dropout probability as we go deeper in
+    the network, have been added after the convolutional layers
+    to prevent overfitting.
+
+    The model architecture was originally proposed by Bojarski et.al,
+    End to Eng Learning for Self-Driving Cars, of NVIDIA Inc.
+    Reference: https://arxiv.org/abs/1604.07316
     """
     model = Sequential()
     ### Data Pre-processing
-    #Cropping model
+    #Cropping input to remove car dash and sky etc.
     model.add(Cropping2D(cropping=((50,20), (0,0)), input_shape=ipshape))
     #Normalization and mean shifting 
     model.add(Lambda(lambda x: x / 255.0 - 0.5))
-    #model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=ipshape))
 
     #Convolutional Layers
     model.add(Convolution2D(24, 5, 5, subsample=(2,2), activation="relu"))
@@ -63,17 +72,24 @@ def buildModel(feature_extract = False, ipshape = (160, 320, 3)):
     model.add(Dense(10))
     model.add(Activation("relu"))
 
+    #Don't return the output layer if this model
+    #is to be used for transfer learning.
     if not feature_extract:
         model.add(Dense(1))
 
     return model
 
 
-def getInputSamples():
+def getInputSamples(addFlippedImages = False):
     """ Reads the contents of the
     driving log file and returns a
-    list of tuples containing the image
-    and steering angle
+    list of tuples containing the center,
+    left and right camera images, and
+    the corresponding steering angles. The
+    function can optionally flip the input
+    images and steering angles and add them
+    to the resultant list, to account for
+    the left turn bias in track 1.
     """
     samples = []
     with open(DRIVING_LOG_FILE, "r") as dlfile:
@@ -96,12 +112,20 @@ def getInputSamples():
             samples.append((rfile, rsteering, False))
             #append a flipped image/steering input too to account for left turn bias
             #The actual flipping happens in dataGenerator
-            ##samples.append((line[0], float(line[3]) * -1.0, True))
+            if addFlipppedImages:
+                samples.append((cfile, csteering * -1.0, True))
+                samples.append((lfile, lsteering * -1.0, True))
+                samples.append((rfile, rsteering * -1.0, True))
     
     return samples
 
 
 def dataGenerator(samples, batchsz = 32):
+    """ Uses a python generator to return a batch
+    tuple of input images and steering angles. It
+    also performs the actual flipping of images if
+    indicated in the input list.
+    """
     while True:
         shuffle(samples)
         for i in range(0, len(samples), batchsz):
@@ -110,7 +134,6 @@ def dataGenerator(samples, batchsz = 32):
             batchdata = samples[i: i + batchsz]
             for b in batchdata:
                 ifile = IMGDIR + b[0]
-                #img = cv2.imread(ifile)
                 img = mpimg.imread(ifile)
                 steering = float(b[1])
                 #If this was an image intended to be
@@ -127,6 +150,12 @@ def dataGenerator(samples, batchsz = 32):
 
 
 def trainModel(model, samples, valsplit = 0.1, modeloutfile = "./model/model.h5"):
+    """ Trains the given model using the given input samples using an AdamOptimizer
+    minimizing the mean squared error between input and predicted steering angles.
+    The resultant model is also saved to the local filesystem at the end. Finally,
+    the function returns a history object with the training metrics (e.g. mse during
+    each epoch) that can be used by the caller for plotting.
+    """
     train_samples, val_samples = train_test_split(samples, test_size = valsplit)
     trainDataGen = dataGenerator(train_samples, batchsz = 64)
     valDataGen = dataGenerator(val_samples, batchsz = 64)
@@ -142,6 +171,8 @@ def trainModel(model, samples, valsplit = 0.1, modeloutfile = "./model/model.h5"
 
         
 def pipeline():
+    """ Runs the overall learning pipeline.
+    """
     samples = getInputSamples()
     model = buildModel()
     history = trainModel(model, samples)
