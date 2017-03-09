@@ -10,12 +10,11 @@ The goals / steps of this project are the following:
 [//]: # (Image References)
 
 [image1]: ./deliverables/writeup_images/p3-nn-model.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
-[image4]: ./examples/placeholder_small.png "Recovery Image"
-[image5]: ./examples/placeholder_small.png "Recovery Image"
-[image6]: ./examples/placeholder_small.png "Normal Image"
-[image7]: ./examples/placeholder_small.png "Flipped Image"
+[image2]: ./deliverables/writeup_images/before_crop.png "Before Cropping Input Image"
+[image3]: ./deliverables/writeup_images/after_crop.png "After Cropping Input Image"
+[image4]: ./deliverables/writeup_images/limage1.png "Left Camera Recovery Image"
+[image5]: ./deliverables/writeup_images/cimage1.png "Normal Image"
+[image6]: ./deliverables/writeup_images/rimage1.png "Right Camera Recovery Image"
 
 ## Rubric Points
 ###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
@@ -28,8 +27,9 @@ The goals / steps of this project are the following:
 My project includes the following files:
 * model.py containing the script to create and train the model
 * drive.py for driving the car in autonomous mode
-* model.h5 containing a trained convolution neural network 
-* writeup_report.md or writeup_report.pdf summarizing the results
+* deliverables/model.h5.final containing a trained convolution neural network 
+* deliverables/video_final.mp4 final output video of car driving itself via the model
+* writeup_report.md summarizing the results
 
 ####2. Submission includes functional code
 Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing 
@@ -67,7 +67,9 @@ For details about how I created the training data, see the next section.
 
 ####1. Solution Design Approach
 
-I initially started with the good old LeNet5 architecture for handwritten digits classification from the previous projects/lessons without any special input pre-processing layers or overfitting controls. I also used the dataset provided by Udacity (center images and steering angles only) to train the network using the adam optimizer for 10-50 epochs with an input batch size of 32. I noticed that the loss metric (mean squared error) stopped improving very early on in the training phase for the validation set while the training set loss kept improving. This meant that the model was overfitting fast. I realized that I needed to add dropout to the model and did so. I also realized that there was probably some input pre-processing that could be done to reduce the input noise. So I added a cropping and a normalization layer early on to the model.
+I initially started with the good old LeNet5 architecture for handwritten digits classification from the previous projects/lessons without any special input pre-processing layers or overfitting controls. I also used the dataset provided by Udacity (center images and steering angles only) to train the network using the adam optimizer for 10-50 epochs with an input batch size of 32. I noticed that the loss metric (mean squared error) stopped improving very early on in the training phase for the validation set while the training set loss kept improving. This meant that the model was overfitting fast. I realized that I needed to add dropout to the model and did so. I also realized that there was probably some input pre-processing that could be done to reduce the input noise. So I added a cropping and a normalization layer early on to the model. This was the result of cropping:
+
+![alt text][image2] ![alt text][image3]
 
 These changes helped somewhat but the car still wasn't able to correct itself once it started straying. It was at this point that I started suspecting that perhaps a more complex model architecture might be required to represent the concepts involved in predicting the steering angle (purely intuition, I should say). So I implemented the model from the paper Bojarski et.al., End to Eng Learning for Self-Driving Cars, of NVIDIA Inc., with my pre-processing and dropout adaptations. This model performed substantially better and the car was able to drive a substantially larger portion of the circuit without veering off-road. I realized at this point that if I augmented the training data to account for the left turn bias and included recovery driving, I might get the car to complete a full lap properly. I did and it worked as shown in the final video. The data augmentation and training process is explained next.
 
@@ -88,13 +90,17 @@ I did the following things to create my entire input dataset:
 * I combined the images and steering angles from both the drives above so that I get a balanced dataset in terms of turn-bias.
 * In order to include examples of recovery driving, I basically used the left and right images from the combined dataset and computed the appropriate steering angle from the steering angle for the center image (model.py lines 103 - 113) as follows:
 
+```sh
 right_img_steering_angle = center_img_steering_angle - CORRECTION_FACTOR
 left_img_steering_angle = center_img_steering_angle + CORRECTION_FACTOR
+```
 
-Basically the idea here is that in the image produced by the right camera, the location that the car needs to get to as per the center camera image prediction, appears further left. Or equivalently the car is veering to the right relative to its actual position. Therefore, we need to subtract a constant factor from the steering angle to get the car to turn further left to get to the correct position. A similar explanation works for the left camera image with the sign of the correction factor reversed. I've illustrated the process below:
+Basically the idea here is that in the image produced by the right camera, the location that the car needs to get to as per the center camera image prediction, appears further left. Or equivalently the car is veering to the right relative to its actual position. Therefore, we need to subtract a constant factor from the steering angle to get the car to turn further left to get to the correct position. A similar explanation works for the left camera image with the sign of the correction factor reversed. I've illustrated the process below - the images in order are from the left camera, center camera and right camera - the steering angles computed using the above formulae are above each image:
 
-
-
+![alt text][image4] ![alt text][image5] ![alt text][image6]
 
 I experimented with values for the correction_factor between 0.15 and 0.35 (binary searched through the space) and found out that a value of 0.27 worked well in terms of recovering the car without being too agressive and bumping into things.
 
+####4. Scope for Improvement
+
+Even though the car did well on Track 1, the same model did not work well on track 2. The car had trouble with two aspects from what I could see: (i) reacting to shadows on the track and (ii) elevation changes. I believe that training on track 2 specifically or some data augmentation might help with coming up with a more generalizable model. I will get back to playing with this once I'm done with the rest of the projects.
