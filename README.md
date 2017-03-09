@@ -10,6 +10,10 @@ Final Deliverables
 * writeup_report.md (a report writeup file)
 * delieverables/video_final.mp4 (a video recording of my vehicle driving autonomously around the track for one full lap)
 
+Online Link to Finished Video
+---
+[![Final Video](https://img.youtube.com/vi/GUrJXReSEzg/0.jpg)](https://streamable.com/kqcob?loop=0)
+
 The Project
 ---
 The goals / steps of this project are the following:
